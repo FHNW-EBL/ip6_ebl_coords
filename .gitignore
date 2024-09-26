@@ -7,6 +7,7 @@ __pycache__/
 # Editors
 ## VSCode
 .vscode/launch.json
+.vscode/settings.json
 *.code-workspace
 
 # vi/vim/nvim backup files
@@ -169,3 +170,5 @@ temp.*
 zone_data
 
 .devcontainer/db/*
+
+.devcontainer/docker-compose.override.yml
