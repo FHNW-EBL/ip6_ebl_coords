@@ -28,7 +28,7 @@ if not os.path.exists(os.path.join(folder, files[0])):
 def replay_gtcommand():
     """Replay raw got files to socket."""
     rp = ReplayConverter(
-        ip_server=DEVICE_IP, files=files, folder=folder, raw_flg=True, fixed_intervall=0.05
+        ip_server=DEVICE_IP, files=files, folder=folder, raw_flg=True
     )
     rp.read_input()
 

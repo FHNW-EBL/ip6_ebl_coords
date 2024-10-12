@@ -27,3 +27,4 @@ services:
 networks:
   ebl-net:
     name: ebl-net
+    external: true

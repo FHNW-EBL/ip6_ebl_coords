@@ -54,5 +54,5 @@ class ReplayConverter(BaseConverter):
                 self.raw_buffer.put(msg)
             else:
                 self.buffer.put(
-                    ConverterOuput(now_ms(), row.x, row.y, row.z, dict(row[misc_idx]))
+                    ConverterOuput(now_ms(), row.transmitter_id, row.x, row.y, row.z, dict(row[misc_idx]))
                 )

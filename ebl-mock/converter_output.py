@@ -8,6 +8,7 @@ class ConverterOuput:
     """Converter output class."""
 
     time_stamp: int
+    id: int
     x: float
     y: float
     z: float
