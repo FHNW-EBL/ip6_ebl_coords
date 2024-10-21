@@ -20,6 +20,9 @@ if MOCK_FLG:
     GTCOMMAND_IP = "127.0.0.1"
     GTCOMMAND_PORT = 42042
 
+# position interface settings
+POSITION_INTERFACE_PORT = 9000
+
 # if true, set all z-coordinates to zero.
 IGNORE_Z_AXIS: bool = True
 

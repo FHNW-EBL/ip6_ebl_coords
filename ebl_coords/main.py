@@ -10,6 +10,7 @@ from ebl_coords.backend.command.invoker import Invoker
 from ebl_coords.backend.constants import CALLBACK_DT_MS, CONFIG_JSON, ECOS_DF_LOCK, MOCK_FLG
 from ebl_coords.backend.ecos import get_ecos_df, get_ecos_df_live, get_ecos_df_mock, load_config
 from ebl_coords.backend.observable.ecos_subject import EcosSubject
+from ebl_coords.backend.observable.inteface_position_observer import AttachPushPositionToInterfaceCommand
 from ebl_coords.frontend.gui import Gui
 from ebl_coords.graph_db.graph_db_api import GraphDbApi
 
@@ -42,6 +43,8 @@ class EblCoords:
 
         self.graphdb = GraphDbApi()
 
+        self.register_observers()
+
         self.gui_queue: Queue[Command] = Queue()
         self.gui = Gui(ebl_coords=self)
         self.gui.run()
@@ -51,6 +54,9 @@ class EblCoords:
         df = get_ecos_df(config=self.ecos_config, bpks=self.bpks)
         with ECOS_DF_LOCK:
             self.ecos_df = df
+
+    def register_observers(self) -> None:
+        self.worker_queue.put(AttachPushPositionToInterfaceCommand())
 
 
 def main() -> None:
