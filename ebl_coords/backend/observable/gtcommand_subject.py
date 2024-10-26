@@ -58,10 +58,29 @@ class GtCommandSubject(Subject):
         self.changed_coord_observers: list[Observer] = []
         self.ts_hit_observers: list[Observer] = []
 
-        self._noise_buffer = np.full((3, 3), dtype=np.float32, fill_value=np.nan)
-        self._median_buffer = np.full((median_kernel_size, 3), dtype=np.float32, fill_value=np.nan)
+        self._median_kernel_size = median_kernel_size
+        self._noise_buffer = dict()
+        self._median_buffer = dict()
         self.ts_coords_lock = RLock()
         self.ts_labels_lock = RLock()
+
+    def get_noise_buffer(self, transmitter_id: str) -> np.ndarray:
+        if not transmitter_id in self._noise_buffer:
+            self._noise_buffer[transmitter_id] = np.full((3, 3), dtype=np.float32, fill_value=np.nan)
+
+        return self._noise_buffer.get(transmitter_id)
+    
+    def set_noise_buffer(self, transmitter_id: str, noise_buffer: np.ndarray) -> None:
+        self._noise_buffer[transmitter_id] = noise_buffer
+
+    def get_median_buffer(self, transmitter_id: str) -> np.ndarray:
+        if not transmitter_id in self._median_buffer:
+            self._median_buffer[transmitter_id] = np.full((self._median_kernel_size, 3), dtype=np.float32, fill_value=np.nan)
+
+        return self._median_buffer.get(transmitter_id)
+    
+    def set_median_buffer(self, transmitter_id: str, median_buffer: np.ndarray) -> None:
+        self._median_buffer[transmitter_id] = median_buffer
 
     def set_next_ts(self, edge_id: str) -> None:
         """Set coordinates and label of following node after this edge.
@@ -83,16 +102,20 @@ class GtCommandSubject(Subject):
         with self.ts_labels_lock:
             self.ts_labels = df["n.node_id"].to_numpy()
 
-    def _filter_coord(self, coord: np.ndarray, noise_filter_threshold: int) -> np.ndarray | None:
+    def _filter_coord(self, transmitter_id: str, coord: np.ndarray, noise_filter_threshold: int) -> np.ndarray | None:
         med_coord: np.ndarray | None = None
-        self._noise_buffer[-1] = coord
-        if get_tolerance_mask(self._noise_buffer, noise_filter_threshold)[0]:
-            self._median_buffer[-1] = self._noise_buffer[1]
-            if not np.isnan(self._median_buffer).any():
-                med_coord = np.median(self._median_buffer, axis=0)
-            self._median_buffer = np.roll(self._median_buffer, shift=self._median_buffer.size - 3)
+        _noise_buffer = self.get_noise_buffer(transmitter_id)
+        _noise_buffer[-1] = coord
+        if get_tolerance_mask(_noise_buffer, noise_filter_threshold)[0]:
+            _median_buffer = self.get_median_buffer(transmitter_id)
+            _median_buffer[-1] = _noise_buffer[1]
+            if not np.isnan(_median_buffer).any():
+                med_coord = np.median(_median_buffer, axis=0)
+            _median_buffer = np.roll(_median_buffer, shift=_median_buffer.size - 3)
+            self.set_median_buffer(transmitter_id, _median_buffer)
 
-        self._noise_buffer = np.roll(self._noise_buffer, shift=self._noise_buffer.size - 3)
+        _noise_buffer = np.roll(_noise_buffer, shift=_noise_buffer.size - 3)
+        self.set_noise_buffer(transmitter_id, _noise_buffer)
         return med_coord
 
     def _record(self, noise_filter_threshold: int) -> None:
@@ -110,13 +133,14 @@ class GtCommandSubject(Subject):
             ds = line_string.split(",")
             coord = np.array([ds[3], ds[4], ds[5]], dtype=np.int32)
             time_stamp = int(ds[0])
-            filtered_coord = self._filter_coord(coord, noise_filter_threshold)
+            transmitter_id = int(ds[1])
+            filtered_coord = self._filter_coord(transmitter_id, coord, noise_filter_threshold)
             if filtered_coord is not None:
                 self.notify(self.all_coord_observers, filtered_coord)
                 if not np.all(filtered_coord == last_coord):
                     if IGNORE_Z_AXIS:
                         filtered_coord[2] = 0
-                    self.notify(self.changed_coord_observers, (time_stamp, filtered_coord))
+                    self.notify(self.changed_coord_observers, (transmitter_id, time_stamp, filtered_coord))
                     if self.ts_labels and self.ts_hit_observers:
                         with self.ts_labels_lock:
                             with self.ts_coords_lock:

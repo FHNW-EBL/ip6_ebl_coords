@@ -30,6 +30,7 @@ class PositionObserver(Observer):
         self.map_editor = map_editor
         self.prev_coord: np.ndarray | None = None
         self.prev_timestamp: int | None = None  # in ms
+        self.prev_transmitter_id: int | None = None
 
     @override
     def update(self) -> None:
@@ -40,9 +41,9 @@ class PositionObserver(Observer):
         assert self.result is not None
         if self.prev_coord is None:
             assert self.prev_timestamp is None
-            self.prev_timestamp, self.prev_coord = self.result
+            self.prev_transmitter_id, self.prev_timestamp, self.prev_coord = self.result
             return
-        timestamp, coord = self.result
+        _, timestamp, coord = self.result
         distance = np.linalg.norm(coord - self.prev_coord) / 1000
         time_delta = (timestamp - self.prev_timestamp) / 1000
 

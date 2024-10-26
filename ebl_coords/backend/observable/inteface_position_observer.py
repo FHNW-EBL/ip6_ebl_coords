@@ -62,10 +62,11 @@ class InterfacePositionObserver(Observer):
 
     @override
     def update(self) -> None:
-        timestamp, coord = self.result
+        transmitter_id, timestamp, coord = self.result
         coord_list = coord.tolist()
 
         self.broadcast(json.dumps({
+            "transmitterId": transmitter_id,
             "timestamp": timestamp,
             "coordinate": coord_list
         }))
